@@ -106,7 +106,7 @@ class FittingClassBase:
         _x = np.linspace(xrange[0], xrange[1], num=nxdata)
         _copy_cov = np.copy(self.output.coef_cov)
         _cov_diag = np.diag(_copy_cov)
-        _scale = np.diag(1./_cov_diag)
+        _scale = np.nan_to_num(np.diag(1./_cov_diag))
         _scale_inv = np.diag(_cov_diag)
         _scaled_mean = np.sqrt(_scale)@self.output.coef
         _scaled_cov = np.matmul(_scale, self.output.coef_cov)
@@ -180,7 +180,7 @@ class PriorClass:
             else:
                 self.std = np.array(std)
                 self.cov = np.array(cov)
-            self.scale = np.diag(1./(self.std*self.std))
+            self.scale = np.nan_to_num(np.diag(1./(self.std*self.std)))
             self.scale_inv = np.diag(self.std*self.std)
             self.scaled_mean = np.sqrt(self.scale)@self.mean
             self.scaled_cov = np.matmul(self.scale, self.cov)
