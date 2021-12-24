@@ -6,7 +6,8 @@ from fittingclass import linear_func, quadratic_func, poly_function
 from fittingclass import gaussian_func, normal_dist_func
 
 
-def mkdata(function, coef, rx, nx=100, vx=0, vy=0, output='./testdata.dat'):
+def mkdata(function, coef, rx, nx=100, vx=0, vy=0,
+           output='./testdata.dat', mode='random'):
     if function in [1, '1', 'l', 'L', 'linear']:
         func = linear_func
     elif function in [2, '2', 'q', 'Q', 'quadratic']:
@@ -21,14 +22,18 @@ def mkdata(function, coef, rx, nx=100, vx=0, vy=0, output='./testdata.dat'):
         _e = 'Please choose from linear, quadratic, poly, normal or gaussian'
         sys.stderr.write(_e)
 
-    x_array = np.random.uniform(low=rx[0],
-                                high=rx[-1],
-                                size=nx)
+    if mode == 'random':
+        x_array = np.random.uniform(low=rx[0],
+                                    high=rx[-1],
+                                    size=nx)
+    else:
+        x_array = np.linspace(rx[0], rx[-1], nx)
     y_array = func(coef, x_array)
-    x_array = x_array + np.random.normal(loc=0., scale=vx,
-                                         size=nx)
-    # y_array = y_array + np.random.normal(loc=0., scale=vy,
-    #                                      size=nx)
+    if mode == 'random':
+        x_array = x_array + np.random.normal(loc=0., scale=vx,
+                                             size=nx)
+        y_array = y_array + np.random.normal(loc=0., scale=vy,
+                                             size=nx)
     xerr_array = np.full(nx, vx)
     yerr_array = np.full(nx, vy)
 
