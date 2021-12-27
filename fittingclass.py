@@ -9,14 +9,22 @@ import dataclass as dc
 from random import random
 from random import uniform
 from random import sample
+import itertools
 from mydecorator import stop_watch, log, get_logger
 from mpi4py import MPI
+import matplotlib.pyplot as plt
+from matplotlib.colors import LinearSegmentedColormap
 
 logger = get_logger()
 
 _comm = MPI.COMM_WORLD
 _myrank = _comm.Get_rank()
 _numcores = _comm.Get_size()
+
+plt.rcParams['axes.formatter.useoffset'] = False
+plt.rcParams['xtick.direction'] = 'in'
+plt.rcParams['ytick.direction'] = 'in'
+plt.rcParams['font.size'] = 14
 
 
 def linear_func(coef, x):
@@ -277,7 +285,7 @@ class MCMCFittingClassBase(FittingClassBase):
             self.x2 = np.append(self.x2, float(_x2))
 
     @log(logger)
-    def make_output(self, burnin=0, thinning=1):
+    def make_output(self, burnin, thinning):
         for _cid, _c in enumerate(self.chains):
             if _cid == 0:
                 _res = np.array(_c.beta[burnin::thinning])
@@ -291,6 +299,98 @@ class MCMCFittingClassBase(FittingClassBase):
         _cov = np.cov(_res.T)
         self.output = self._OutputClass(np.array(_mean), np.array(_std), _cov)
         return self.output
+
+    def generate_cmap(self, colors, num):
+        _values = range(len(colors))
+        _vmax = np.ceil(np.max(_values))
+        _color_list = []
+        for _v, _c in zip(_values, colors):
+            _color_list.append((_v/_vmax, _c))
+        _arg = 'custom_cmap', _color_list, num
+        return LinearSegmentedColormap.from_list(*_arg)
+
+    @log(logger)
+    def check_sample(self, colors=['dodgerblue', 'seagreen', 'deeppink'],
+                     show=True, output=None, **kwargs):
+        _inch = 3.14
+        _cm = self.generate_cmap(colors, self.nchain)
+        nbeta = self.chains[0].beta.shape[1]
+        fig = plt.figure(figsize=(_inch*3, _inch*(nbeta+1)))
+        gs = fig.add_gridspec(nbeta+1,)
+        ax = []
+        for _betaid in range(nbeta):
+            ax.append(fig.add_subplot(gs[_betaid, 0]))
+            ax[_betaid].tick_params(top=True, bottom=True,
+                                    left=True, right=True)
+            plt.setp(ax[_betaid].get_xticklabels(), visible=False)
+            for _cid, _c in enumerate(self.chains):
+                ax[_betaid].plot(_c.beta[:, _betaid],
+                                 color=_cm(_cid),
+                                 label='Chain {:d}'.format(_cid))
+            ax[_betaid].set_ylabel(r'coef[{:d}]'.format(_betaid))
+        ax.append(fig.add_subplot(gs[nbeta, 0]))
+        ax[nbeta].tick_params(top=True, bottom=True,
+                              left=True, right=True)
+        for _cid, _c in enumerate(self.chains):
+            ax[nbeta].plot(_c.x2/self.DoF,
+                           color=_cm(_cid),
+                           label='Chain {:d}'.format(_cid))
+            ax[nbeta].set_yscale('log')
+        ax[nbeta].set_ylabel(r'$\chi^2_{red}$')
+        ax[nbeta].legend()
+        plt.xlabel('steps')
+        fig.align_labels()
+        plt.subplots_adjust(hspace=.0)
+        if show:
+            plt.show()
+        if output is not None:
+            fig.savefig(output)
+
+    @log(logger)
+    def check_hist(self, burnin=0, thinning=1,
+                   show=True, output=None, **kwargs):
+        _inch = 3.14
+        for _cid, _c in enumerate(self.chains):
+            if _cid == 0:
+                _res = np.array(_c.beta[burnin::thinning])
+            else:
+                _res = \
+                    np.concatenate([_res, np.array(_c.beta[burnin::thinning])])
+        fig = plt.figure(figsize=(_inch*_res.shape[1], _inch*_res.shape[1]))
+        gs = fig.add_gridspec(_res.shape[1], _res.shape[1])
+        ax = list()
+        _args = \
+            itertools.combinations_with_replacement(range(_res.shape[1]), 2)
+        for _i, _j in _args:
+            ax.append(fig.add_subplot(gs[_res.shape[1]-_i-1,
+                                         _res.shape[1]-_j-1]))
+        _args = \
+            itertools.combinations_with_replacement(range(_res.shape[1]), 2)
+        for _axi, (_i, _j) in enumerate(_args):
+            _i, _j = _res.shape[1]-_i-1, _res.shape[1]-_j-1
+            if _i == _j:
+                ax[_axi].tick_params(top=False, bottom=True,
+                                     left=False, right=False)
+                ax[_axi].hist(_res[:, _i], color='grey', alpha=0.3)
+                plt.setp(ax[_axi].get_yticklabels(), visible=False)
+            else:
+                ax[_axi].tick_params(top=True, bottom=True,
+                                     left=True, right=True)
+                ax[_axi].scatter(_res[:, _j], _res[:, _i], color='grey', s=1)
+                ax[_axi].set_ylabel('coef[{:d}]'.format(_i))
+            if _i != _res.shape[1]-1:
+                plt.setp(ax[_axi].get_xticklabels(), visible=False)
+            else:
+                plt.setp(ax[_axi].get_xticklabels(), rotation=30)
+                ax[_axi].set_xlabel('coef[{:d}]'.format(_j))
+            if _j != 0:
+                plt.setp(ax[_axi].get_yticklabels(), visible=False)
+        fig.align_labels()
+        plt.subplots_adjust(hspace=.0, wspace=0.)
+        if show:
+            plt.show()
+        if output is not None:
+            fig.savefig(output)
 
 
 class MetropolisAlgorithm(MCMCFittingClassBase):
