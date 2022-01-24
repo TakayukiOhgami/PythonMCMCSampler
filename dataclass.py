@@ -46,9 +46,12 @@ class DataClass:
                 for _idx, _tag in enumerate(np.unique(_sd.tag)):
                     _temp[_tag] = dict()
                     for _k, _a in _sd.__dict__.items():
-                        _temp[_tag][_k] = None if _a is None else \
-                            np.array([_v for _t, _v in zip(_sd.tag, _a)
-                                      if _t == _tag])
+                        try:
+                            _temp[_tag][_k] = \
+                                np.array([_v for _t, _v in zip(_sd.tag, _a)
+                                          if _t == _tag])
+                        except TypeError:
+                            _temp[_tag][_k] = None
                     _sorted_idx = np.argsort(-_temp[_tag]['x']) if inverse \
                         else np.argsort(_temp[_tag]['x'])
                     for _k in _temp[_tag].keys():
@@ -121,10 +124,11 @@ def pick(data, name=None, tag=None):
         for _name in _ret.name():
             _temp = dict()
             for _k, _a in _ret.data[_name].__dict__.items():
-                _temp[_k] = \
-                    np.array([_v for _t, _v in zip(data.data[_name].tag, _a)
-                              if _t == tag]) \
-                    if _a is not None else None
+                try:
+                    _args = zip(data.data[_name].tag, _a)
+                    _temp[_k] = np.array([_v for _t, _v in _args if _t == tag])
+                except TypeError:
+                    _temp[_k] = None
             _ret.data[_name].x = _temp['x']
             _ret.data[_name].y = _temp['y']
             _ret.data[_name].z = _temp['z']
