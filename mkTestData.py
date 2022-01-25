@@ -1,9 +1,12 @@
 import sys
 import numpy as np
-import dataclass as dc
+import PythonMCMCSampler.dataclass as dc
 from argparse import ArgumentParser
-from fittingclass import linear_func, quadratic_func, poly_function
-from fittingclass import gaussian_func, normal_dist_func
+from PythonMCMCSampler.fittingclass import linear_func
+from PythonMCMCSampler.fittingclass import quadratic_func
+from PythonMCMCSampler.fittingclass import poly_function
+from PythonMCMCSampler.fittingclass import gaussian_func
+from PythonMCMCSampler.fittingclass import normal_dist_func
 
 
 def mkdata(function, coef, rx, nx=100, vx=0, vy=0,

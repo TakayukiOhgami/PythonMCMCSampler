@@ -1,5 +1,6 @@
-from mkTestData import mkdata
-from fittingclass import PriorClass, MetropolisAlgorithm, chi2
+from PythonMCMCSampler.mkTestData import mkdata
+from PythonMCMCSampler.fittingclass import PriorClass
+from PythonMCMCSampler.fittingclass import MetropolisAlgorithm, chi2
 
 
 testdata = mkdata('q', [1.5, 0, 2], [-15, 15], 15, 0, 10, 'return', 'random')
