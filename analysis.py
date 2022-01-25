@@ -82,7 +82,7 @@ def check_sample(chains, labels=None, colors=['dodgerblue', 'deeppink'], DoF=1,
             else labels[_betaid]
         ax[_betaid+1].set_ylabel(ylabel)
     fig.align_labels()
-    plt.subplots_adjust(wspace=0., hspace=.0)
+    plt.subplots_adjust(wspace=0., hspace=.02)
     if show:
         plt.show()
     if output is not None:
@@ -119,6 +119,7 @@ def check_autocorrelation(chains, labels=None,
                                      label='Chain {:d}'.format(_cid))
             else:
                 autocorrelation_plot(seleas, ax=ax[_betaid], color=_cm(_cid))
+            ax[_betaid].set_ylim(-0.7, 1.2)
         if _betaid == 0:
             ax[_betaid].legend(bbox_to_anchor=(1.01, 1.0),
                                loc='upper left', borderaxespad=0)
@@ -126,7 +127,7 @@ def check_autocorrelation(chains, labels=None,
             else r'AutoCorr ({:s})'.format(labels[_betaid])
         ax[_betaid].set_ylabel(ylabel)
     fig.align_labels()
-    plt.subplots_adjust(hspace=.0)
+    plt.subplots_adjust(hspace=.02)
     if show:
         plt.show()
     if output is not None:
@@ -293,11 +294,14 @@ def read_result(path, idxs=None):
     chains = []
     for _cidx in range(nchain):
         filename = os.path.join(path, 'chain_{:0>2d}.dat'.format(_cidx))
-        df = pd.read_csv(filename, sep=",")
-        beta = [key for key in df.columns
-                if key not in ['Likelihood', 'chi2']] if idxs is None \
-            else idxs
-        chains.append(_ChainClass(df[beta], df.Likelihood, df.chi2))
+        try:
+            df = pd.read_csv(filename, sep=",")
+            beta = [key for key in df.columns
+                    if key not in ['Likelihood', 'chi2']] if idxs is None \
+                else idxs
+            chains.append(_ChainClass(df[beta], df.Likelihood, df.chi2))
+        except pd.errors.EmptyDataError:
+            continue
     return chains
 
 
