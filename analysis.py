@@ -135,7 +135,7 @@ def check_autocorrelation(chains, labels=None,
 
 
 def check_hist(chains, labels=None, burnin=0, thinning=1, histtype='scatter',
-               show=True, output=None, **kwargs):
+               colors=None, show=True, output=None, **kwargs):
     for _cid, _c in enumerate(chains):
         if _cid == 0:
             _res = np.array(_c.beta[burnin::thinning])
@@ -173,7 +173,17 @@ def check_hist(chains, labels=None, burnin=0, thinning=1, histtype='scatter',
         ax2d[_idx].tick_params(top=True, bottom=True,
                                left=True, right=True)
         if histtype == 'scatter':
-            ax2d[_idx].scatter(_res[:, _i], _res[:, _j], color='grey', s=1)
+            if colors is None:
+                ax2d[_idx].scatter(_res[:, _i], _res[:, _j], color='grey', s=1)
+            else:
+                cmap = generate_cmap(colors, len(chains))
+                for cid, _c in enumerate(chains):
+                    x = _c.beta[burnin::thinning, _i]
+                    y = _c.beta[burnin::thinning, _j]
+                    cm = generate_cmap(['whitesmoke', cmap(cid)], x.size)
+                    ax2d[_idx].scatter(x, y, c=list(range(x.size)),
+                                       vmin=0, vmax=x.size,
+                                       cmap=cm, s=1)
         elif histtype in ['heatmap', 'contour']:
             x_min, x_max = ax1d[_i].get_xlim()
             y_min, y_max = ax1d[_j].get_xlim()
@@ -183,10 +193,12 @@ def check_hist(chains, labels=None, burnin=0, thinning=1, histtype='scatter',
                                           bins=(x_bins, y_bins))
             hist = hist/np.sum(hist)
             if histtype == 'heatmap':
+                cmap = 'Greys' if colors is None \
+                    else generate_cmap(colors, hist.size)
                 ax2d[_idx].imshow(hist.T, interpolation='nearest',
                                   origin='lower', aspect='auto',
                                   extent=[xe[0], xe[-1], ye[0], ye[-1]],
-                                  cmap='Greys')
+                                  cmap=cmap)
 
             elif histtype == 'contour':
                 x = [np.mean(xe[_k:_k+2]) for _k in range(xe.size-1)]
@@ -201,8 +213,10 @@ def check_hist(chains, labels=None, burnin=0, thinning=1, histtype='scatter',
                     temp_idx = (np.abs(hist_sum-(1.-lev))).argmin()
                     levels.append(hist_flatsort[temp_idx])
                 levels = sorted(list(set(levels)))
+                colors = ['whitesmoke', 'darkgray', 'k'] \
+                    if colors is None else colors
                 cmap, norm = \
-                    generate_disc_cmap(['whitesmoke', 'darkgray', 'k'],
+                    generate_disc_cmap(colors,
                                        vals=levels)
                 ax2d[_idx].contourf(x, y, hist.T, levels=levels,
                                     cmap=cmap, norm=norm,
